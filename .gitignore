@@ -1,0 +1,54 @@
+# RISC-V 工具链产物 / Build output
+app/projects/standard/Output/
+app/projects/standard/Output/**
+*.o
+*.obj
+*.dep
+*.bin
+*.dcf
+*.rv32
+*.elf
+*.map
+*.lst
+*.xm
+*.out
+*.bak
+
+# Code::Blocks 私有文件（保留项目文件 .cbp）
+*.layout
+*.depend
+
+# IDE/编辑器临时文件
+*.swp
+*~
+.vscode/
+.idea/
+*.user
+
+# OS
+Thumbs.db
+.DS_Store
+
+# 大型 SDK 静态库（按需选择是否忽略；本仓库保留可帮助本地重复构建）
+# *.a
+
+# 资源/配置生成文件（prebuild 会重新生成）
+app/projects/standard/Output/bin/xcfg.h
+app/projects/standard/Output/bin/xcfg.bin
+app/projects/standard/Output/bin/xcfg.xm
+app/projects/standard/Output/bin/res.h
+app/projects/standard/Output/bin/res.bin
+app/projects/standard/Output/bin/res.xm
+app/projects/standard/Output/bin/download.xm
+app/projects/standard/Output/bin/header.bin
+app/projects/standard/Output/bin/app.bin
+app/projects/standard/Output/bin/app.dcf
+app/projects/standard/Output/bin/app.rv32
+app/projects/standard/Output/bin/app.xm
+app/projects/standard/Output/bin/updater.bin
+app/projects/standard/Output/bin/map.txt
+
+# 本地验证日志（除非要提交对比基线）
+logs/
+*.log
+*.txt.log

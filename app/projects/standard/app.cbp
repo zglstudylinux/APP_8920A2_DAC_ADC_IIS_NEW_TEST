@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="app" />
+		<Option pch_mode="2" />
+		<Option compiler="riscv32" />
+		<Build>
+			<Target title="Debug">
+				<Option output="Output/bin/app.rv32" prefix_auto="1" extension_auto="0" />
+				<Option object_output="Output/obj/" />
+				<Option type="1" />
+				<Option compiler="riscv32" />
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Os" />
+			<Add option="-Wall" />
+			<Add option="-march=rv32imacxbs1" />
+			<Add option="-ffunction-sections" />
+			<Add option="-msave-restore" />
+			<Add option="-mjump-tables-in-text" />
+			<Add directory="." />
+			<Add directory="display" />
+			<Add directory="message" />
+			<Add directory="port" />
+			<Add directory="plugin" />
+			<Add directory="../../modules" />
+			<Add directory="../../modules/dueros" />
+			<Add directory="../../platform/header" />
+			<Add directory="../../platform/libs" />
+			<Add directory="../../platform/bsp" />
+			<Add directory="../../platform/functions" />
+			<Add directory="../../platform/gui" />
+			<Add directory="../../bsp_ext" />
+		</Compiler>
+		<Linker>
+			<Add option="-T$(TARGET_OBJECT_DIR)ram.o" />
+			<Add option="--gc-sections" />
+			<Add option="-Map=Output\bin\map.txt" />
+			<Add library="libplatform" />
+			<Add library="libbtstack" />
+			<Add library="libcodecs" />
+			<Add library="libdrivers" />
+			<Add directory="../../platform/libs" />
+		</Linker>
+		<ExtraCommands>
+			<Add before="Output\bin\prebuild.bat $(PROJECT_NAME)" />
+			<Add after="Output\bin\postbuild.bat $(PROJECT_NAME)" />
+		</ExtraCommands>
+		<Unit filename="../../bsp_ext/bsp_adc_aux_ext.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../bsp_ext/bsp_adc_aux_ext.h" />
+		<Unit filename="../../bsp_ext/bsp_dac_ext.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../bsp_ext/bsp_dac_ext.h" />
+		<Unit filename="../../bsp_ext/bsp_iis_ext.h" />
+		<Unit filename="../../platform/bsp/bsp_param.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../platform/bsp/bsp_sys.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../platform/header/clib.h" />
+		<Unit filename="../../platform/header/config_define.h" />
+		<Unit filename="../../platform/header/config_extra.h" />
+		<Unit filename="../../platform/header/global.h" />
+		<Unit filename="../../platform/header/include.h" />
+		<Unit filename="../../platform/header/io_def.h" />
+		<Unit filename="../../platform/header/macro.h" />
+		<Unit filename="../../platform/header/s_common.h" />
+		<Unit filename="../../platform/header/sfr.h" />
+		<Unit filename="../../platform/header/typedef.h" />
+		<Unit filename="../../platform/libs/api.h" />
+		<Unit filename="../../platform/libs/api_btstack.h" />
+		<Unit filename="../../platform/libs/api_cm.h" />
+		<Unit filename="../../platform/libs/api_dac.h" />
+		<Unit filename="../../platform/libs/api_device.h" />
+		<Unit filename="../../platform/libs/api_fmrx.h" />
+		<Unit filename="../../platform/libs/api_fmtx.h" />
+		<Unit filename="../../platform/libs/api_fs.h" />
+		<Unit filename="../../platform/libs/api_gpio.h" />
+		<Unit filename="../../platform/libs/api_karaok.h" />
+		<Unit filename="../../platform/libs/api_key.h" />
+		<Unit filename="../../platform/libs/api_math.h" />
+		<Unit filename="../../platform/libs/api_msg.h" />
+		<Unit filename="../../platform/libs/api_music.h" />
+		<Unit filename="../../platform/libs/api_nr.h" />
+		<Unit filename="../../platform/libs/api_pwr.h" />
+		<Unit filename="../../platform/libs/api_rtc.h" />
+		<Unit filename="../../platform/libs/api_saradc.h" />
+		<Unit filename="../../platform/libs/api_sd.h" />
+		<Unit filename="../../platform/libs/api_sdadc.h" />
+		<Unit filename="../../platform/libs/api_sensor.h" />
+		<Unit filename="../../platform/libs/api_spiflash_ex.h" />
+		<Unit filename="../../platform/libs/api_sys.h" />
+		<Unit filename="../../platform/libs/api_sysclk.h" />
+		<Unit filename="../../platform/libs/api_tkey.h" />
+		<Unit filename="../../platform/libs/api_uart.h" />
+		<Unit filename="../../platform/libs/api_update.h" />
+		<Unit filename="../../platform/libs/api_usb.h" />
+		<Unit filename="../../platform/libs/strong_symbol.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="Output/bin/app.xm">
+			<Option compile="1" />
+			<Option compiler="riscv32" use="1" buildCommand="$compiler $options $includes -E -P -x c -c $file -o $(TARGET_OUTPUT_DIR)appxm.o" />
+		</Unit>
+		<Unit filename="Output/bin/download.xm">
+			<Option compile="1" />
+			<Option compiler="riscv32" use="1" buildCommand=" " />
+		</Unit>
+		<Unit filename="Output/bin/res.xm">
+			<Option compile="1" />
+			<Option compiler="riscv32" use="1" buildCommand=" " />
+		</Unit>
+		<Unit filename="Output/bin/xcfg.xm">
+			<Option compile="1" />
+			<Option compiler="riscv32" use="1" buildCommand=" " />
+		</Unit>
+		<Unit filename="config.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="config.h" />
+		<Unit filename="main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ram.ld">
+			<Option compile="1" />
+			<Option compiler="riscv32-v2" use="1" buildCommand="$compiler $options $includes -E -P -x c -c $file -o $(TARGET_OBJECT_DIR)ram.o" />
+			<Option compiler="riscv32" use="1" buildCommand="$compiler $options $includes -E -P -x c -c $file -o $(TARGET_OBJECT_DIR)ram.o" />
+		</Unit>
+		<Unit filename="res.h" />
+		<Unit filename="res2.h" />
+		<Unit filename="xcfg.h" />
+		<Extensions>
+			<code_completion />
+			<envvars />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>
