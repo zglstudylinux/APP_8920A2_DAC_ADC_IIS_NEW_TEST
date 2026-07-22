@@ -175,7 +175,7 @@ unsigned char sine8k1k[32] = {
 void test_pcm2dac(void)
 {
     WDT_DIS();
-    dac_spr_set(SPR_8000);   //DAC采样率 8~48K可选
+    dac_spr_set(SPR_16000);  //DAC采样率 8~48K可选
     dac_set_dvol(DIG_N0DB);  //设置数字音量,最大0DB
     dac_set_avol(25);        //设置模拟音量,0~59.
     u32 *pcm_buf = (u32*)sine8k1k;

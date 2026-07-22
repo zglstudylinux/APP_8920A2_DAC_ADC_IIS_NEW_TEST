@@ -45,7 +45,9 @@ APP_8920A2_DAC_ADC_IIS_NEW_TEST
 | 任务 | 状态 | 提交/文档 |
 |---|---|---|
 | 工程基线（PC1：Code::Blocks Build + 烧录 + 1 kHz 声音） | ✅ | [首次日志分析](docs/SDK入门与任务实施指南.md#21-第一次运行日志逐行分析) |
-| 任务 A1：16 kHz + 500/1k/2k Hz 正弦表 | ⏳ | 待完成 |
+| 任务 A1 第 1 步：16 kHz 采样率（sine8k1k 数组）| ✅ | [A1 步骤 1 验证记录](docs/SDK入门与任务实施指南.md#22-任务-a1-第-1-步验证采样率-8k--16k) |
+| 任务 A1 第 2 步：32 点/500 Hz 正弦表 | ⏳ | 待完成 |
+| 任务 A1 第 3 步：16 点/1 kHz + 8 点/2 kHz 正弦表 | ⏳ | 待完成 |
 | 任务 A2：AUX ADC → DAC（重写 `auxadc_pcm_to_dac`） | ⏳ | 待完成 |
 | 任务 A3：IIS Master SRCTX（重写 `iis_master_srctx_init`） | ⏳ | 待完成 |
 | 任务 A4：IIS Slave RAMRX → DAC（重写 `iis_slave_ram_rx_2_dac`） | ⏳ | 待完成 |
