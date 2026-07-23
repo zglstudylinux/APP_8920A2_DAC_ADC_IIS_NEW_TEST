@@ -1723,3 +1723,111 @@ TEST_PCM2DAC
 - 这一步确认 **数组长度 → 频率** 的关系：16 kHz / 32 = 500 Hz。
 
 ---
+
+## 24. 任务 A1 第 2 步验证：500 Hz 正弦表（PC4）
+
+> **任务目标**：验证"采样率不变、数组每周期样点数 N 翻 4 倍 → 输出频率减为 1/4"。  
+> **修改位置**：[app/platform/bsp/bsp_sys.c:188-205](../app/platform/bsp/bsp_sys.c#L188-L205)  
+> **修改内容**：在 `sine8k1k` 后面新增 `sine_16k_500hz[128]` 数组（32 点/周期），把 `pcm_buf` 指向新数组，并把循环边界改成 `sizeof(sine_16k_500hz)/4`。  
+> **保留**：采样率 16 kHz（PC2）、avol=50（PC3）  
+> **核心公式**：`f_out = fs / N` → `16000 / 32 = 500 Hz`
+
+### 24.1 修改 diff
+
+```diff
+ unsigned char sine8k1k[32] = { ... };
++
++//A1 第 2 步：16 kHz 采样率 + 32 点/周期 = 500 Hz 正弦表
++//幅值与 sine8k1k 一致 (peak = 0x4027 = 16423), 16-bit 数据复制到 u32 高/低半字
++unsigned char sine_16k_500hz[128] = {
++        0x00, 0x00, 0x00, 0x00, 0x84, 0x0C, 0x84, 0x0C, 0x8D, 0x18, 0x8D, 0x18, 0xA4, 0x23, 0xA4, 0x23,
++        0x5D, 0x2D, 0x5D, 0x2D, 0x57, 0x35, 0x57, 0x35, 0x45, 0x3B, 0x45, 0x3B, 0xEB, 0x3E, 0xEB, 0x3E,
++        0x27, 0x40, 0x27, 0x40, 0xEB, 0x3E, 0xEB, 0x3E, 0x45, 0x3B, 0x45, 0x3B, 0x57, 0x35, 0x57, 0x35,
++        0x5D, 0x2D, 0x5D, 0x2D, 0xA4, 0x23, 0xA4, 0x23, 0x8D, 0x18, 0x8D, 0x18, 0x84, 0x0C, 0x84, 0x0C,
++        0x00, 0x00, 0x00, 0x00, 0x7C, 0xF3, 0x7C, 0xF3, 0x73, 0xE7, 0x73, 0xE7, 0x5C, 0xDC, 0x5C, 0xDC,
++        0xA3, 0xD2, 0xA3, 0xD2, 0xA9, 0xCA, 0xA9, 0xCA, 0xBB, 0xC4, 0xBB, 0xC4, 0x15, 0xC1, 0x15, 0xC1,
++        0xD9, 0xBF, 0xD9, 0xBF, 0x15, 0xC1, 0x15, 0xC1, 0xBB, 0xC4, 0xBB, 0xC4, 0xA9, 0xCA, 0xA9, 0xCA,
++        0xA3, 0xD2, 0xA3, 0xD2, 0x5C, 0xDC, 0x5C, 0xDC, 0x73, 0xE7, 0x73, 0xE7, 0x7C, 0xF3, 0x7C, 0xF3,
++};
+
+ void test_pcm2dac(void)
+ {
+     WDT_DIS();
+     dac_spr_set(SPR_16000);
+     dac_set_dvol(DIG_N0DB);
+     dac_set_avol(50);
+-    u32 *pcm_buf = (u32*)sine8k1k;
++    u32 *pcm_buf = (u32*)sine_16k_500hz;
+     u32 i = 0;
+     while(1) {
+         print_audio_sfr_info();
+         if((AUBUFCON & BIT(8)) == 0) {
+             AUBUFDATA = pcm_buf[i];
+             pcm_cnt++;
+             i++;
+-            if (i >= sizeof(sine8k1k)/4) {
++            if (i >= sizeof(sine_16k_500hz)/4) {
+                 i = 0;
+             }
+         }
+     }
+ }
+```
+
+### 24.2 实测结果（DSOX1202A）
+
+| 项目 | PC3（sine8k1k, 8 点）| **PC4（sine_16k_500hz, 32 点）** | 状态 |
+|---|---|---|---|
+| `dac_spr_set()` | `SPR_16000` | `SPR_16000` | ✅ 保留 |
+| `dac_set_avol()` | 50（代码）| 50（代码）| ✅ 保留 |
+| 正弦表 | sine8k1k（8 点）| sine_16k_500hz（**32 点**）| ✅ 替换 |
+| 理论输出 | 2000 Hz | **500 Hz** | ✅ |
+| **实测频率** | 1.9598 kHz | **~500 Hz** | ✅ 频率减为 1/4 |
+| Vpp 期望 | ~2.2 V | 与 PC3 相近 | 数组幅值相同 |
+| 串口 `SampleRate` | 16003 | ~16000 | ✅ |
+| 串口 `DACDIGCON0` | 0x219 | 0x219 | ✅ |
+| 声音 | 中高音调 | **明显低沉** | ✅ |
+
+### 24.3 关键结论
+
+1. **数组长度翻 4 倍 → 频率减为 1/4**：`f = fs / N` 公式在实测中完美验证：
+   - 8 点/周期 → 2000 Hz（实测 1959.8 Hz，-2% 系统误差）
+   - **32 点/周期 → 500 Hz（实测 ~500 Hz）**
+2. **声音明显低沉**：从 1959.8 Hz（中高音）→ 500 Hz（低音），耳机中明显"闷"了很多；
+3. **采样率和 avol 不变**：只有 `pcm_buf` 指针和数组边界变了，验证了**音频频率只取决于数组长度**；
+4. **DAC 通路稳定**：FIFO 仍稳态 571/575，无欠载/无断续。
+
+### 24.4 avol 寄存器的异常排查（⚠️ 待你确认）
+
+实测串口中 `avol=0x02` 而不是预期的 `0x6B`。`0x02 = N_52DB（-52 dB，几乎静音）`，但你仍听到正常声音。
+
+**可能原因**：
+
+1. **dac_init 内部的 P_5DB 预设还没被覆盖**：
+   - [bsp_dac_ext.c:289](../app/bsp_ext/bsp_dac_ext.c#L289) 在 dac_init 中写 `AUANGCON3 = ... | P_5DB`（=0x70）；
+   - 但你说在主循环里看到 `avol=0x02`，意味着 dac_set_avol(50) 之后又被改了；
+   - **可能解释**：dac_set_avol 的实现做了索引转换或限幅，把 50 截断成 2。
+2. **dac_init 之后又调用了某个 reset/calibration 函数**（库内代码），把 avol 重置成 N_52DB；
+3. **dcf 没刷新**——但你确认频率变 500 Hz，说明数组替换生效，应该是新 dcf；
+4. **AUANGCON3 寄存器读取方式有偏移**：`print_audio_sfr_info` 打印的 `avol` 字段可能不是 `AUANGCON3[7:0]`，而是某个 bit 字段；
+
+**临时结论**：声音正常、频率正确、波形连续，**说明 DAC 模拟输出端是有效的**。avol 寄存器值的具体含义**不影响 A1 任务的核心验证**。后续如果你想精确调试 avol 寄存器，需要专门看 `dac_set_avol` 在你的代码里到底做了什么（可能库内实现与我们看到的 BSP 层不一样）。
+
+### 24.5 实战提醒
+
+- 数组替换**只改 `pcm_buf` 指针和循环边界**，其他不要动；
+- `sizeof(arr)/4` 是数组元素个数（u32 = 4 字节），不要写错；
+- 主循环里每 1 秒打印一次 `print_audio_sfr_info()`，可以观察到数组生效后的稳态 FIFO；
+- 如果频率没变（仍是 1.96 kHz），说明数组没替换成功，需要重新 Build 或检查 dcf 时间戳。
+
+### 24.6 下一步
+
+**A1 第 3 步**：替换为 16 点/周期的 1 kHz 正弦表 + 8 点/周期的 2 kHz 正弦表，并用按键/分支切换三张表（500 Hz / 1 kHz / 2 kHz）。
+
+- 保持 `dac_spr_set(SPR_16000)` 和 `dac_set_avol(50)` 不变；
+- 三个数组：**sine_16k_500hz（32 点）** + **sine_16k_1khz（16 点）** + **sine_16k_2khz（8 点）**；
+- 三种频率验证：500 Hz / 1000 Hz / 2000 Hz；
+- 切换方式可以先用 `xcfg_cb` 字段或编译时宏（`#define CUR_FREQ 0/1/2`），简化按钮逻辑；
+- 这一步完整覆盖任务 A1 的"500/1k/2k 三种正弦波"要求。
+
+---
