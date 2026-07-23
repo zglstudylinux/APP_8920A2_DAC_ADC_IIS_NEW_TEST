@@ -177,7 +177,7 @@ void test_pcm2dac(void)
     WDT_DIS();
     dac_spr_set(SPR_16000);  //DAC采样率 8~48K可选
     dac_set_dvol(DIG_N0DB);  //设置数字音量,最大0DB
-    dac_set_avol(25);        //设置模拟音量,0~59.
+    dac_set_avol(50);        //设置模拟音量,0~59. (A1-PC3 验证: -5 dB)
     u32 *pcm_buf = (u32*)sine8k1k;
     u32 i = 0;
     while(1) {
