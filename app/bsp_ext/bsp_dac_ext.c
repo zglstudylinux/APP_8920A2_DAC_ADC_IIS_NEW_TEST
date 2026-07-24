@@ -49,10 +49,11 @@ void dac_obuf_init(void)
     printf("%s\n",__func__);
     memset((void *)dac_obuf, 0, DAC_OBUF_SIZE * 4);
     AUBUFCON |= BIT(18);                            //DAC high sample rate count enable
-    AUBUFCON |= BIT(0);                             //Reset audio Buffer
+    AUBUFCON |= BIT(0);                             //Reset audio Buffer (write 1 to enter reset)
     AUBUFSIZE = (DAC_OBUF_SIZE - 1);                //Configure audio buffer size
     AUBUFSIZE |= (DAC_OBUF_SIZE - 192) << 16;       //Audio Buffer Threshold
     AUBUFSTARTADDR = DMA_ADR(dac_obuf);             //Configure audio buffer start address
+    AUBUFCON &= ~BIT(0);                            //Exit FIFO reset (write 0 to release)
 }
 
 //adpll_init时band从0开始，其他情况从pll_band开始

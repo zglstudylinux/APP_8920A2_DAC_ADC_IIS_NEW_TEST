@@ -1871,3 +1871,140 @@ TEST_PCM2DAC
 - 这一步完整覆盖任务 A1 的"500/1k/2k 三种正弦波"要求。
 
 ---
+
+## 25. 任务 A2 验证：AUX ADC → DAC（PC7）
+
+> **任务目标**：重写 `auxadc_pcm_to_dac()`，实现 AUX 模拟信号 → ADC → DAC → 耳机。
+> **核心难点**：① 应用层覆盖库函数（库版本是 strong symbol）；② AUX 输入引脚实际是 PE6/PE7（不是默认的 PA6/PA7）；③ 库默认 `aux_analog_channel_select_ext()` 只支持 PA6/PA7。
+> **本次验证结果**：**有声音但有噪声**，核心链路打通，但需要做噪声优化。
+
+### 25.1 关键技术问题与解决方案
+
+#### 问题 1：`multiple definition of auxadc_pcm_to_dac`
+
+库版本是 strong symbol（`T`），应用层同名函数会冲突。
+
+**解决方案**：GCC `--wrap=auxadc_pcm_to_dac` 链接器选项：
+
+```c
+// app.cbp 链接器配置
+<Add option="--wrap=auxadc_pcm_to_dac" />
+
+// 应用层实现 (bsp_adc_pcm_to_dac_ext.c)
+void __wrap_auxadc_pcm_to_dac(u8 flag, u8 *adc_buf, u16 adc_samples) { ... }
+```
+
+**注意**：链接器用 ld 直接调用，`-Wl,--wrap=` 会传错；必须写 `--wrap=`（不带 `-Wl,`）。
+
+#### 问题 2：AUX 引脚不是默认的 PA6/PA7
+
+按原理图 + 引脚定义图，AUX 实际引脚：
+
+| 声道 | 实际引脚 | AUX 名 | ADC |
+|---|---|---|---|
+| 左 | **PE6** | AUXL2 | ADC8 |
+| 右 | **PE7** | AUXR2 | ADC9 |
+
+**原代码错误**：默认 `auxadc_cb.channel = CH_AUXL_PA6 | CH_AUXR_PA7`（0x11）。
+
+**修复**：
+
+```c
+// bsp_adc_aux_ext.c:117
+auxadc_cb.channel = CH_AUXL_PE6 | CH_AUXR_PE7;  // 0x33
+```
+
+#### 问题 3：`aux_analog_channel_select_ext()` 默认只支持 PA6/PA7
+
+库的 PE6/PE7 路径被注释掉。
+
+**修复**：放开 PE6/PE7 路径：
+
+```c
+if (left) {
+    if (left == CH_AUXL_PA6) {
+        AUANGCON7 |= BIT(8);                    // source 0 (PA6)
+    }
+    else if (left == CH_AUXL_PB1) {
+        AUANGCON7 |= BIT(9);                    // source 1 (PB1)
+    }
+    else if (left == CH_AUXL_PE6) {
+        AUANGCON7 |= BIT(10);                   // source 2 (PE6/AUXL2) ← 关键
+    }
+    else if (left == CH_AUXL_PF4) {
+        AUANGCON7 |= BIT(11);                   // source 3 (PF4)
+    }
+    ...
+}
+```
+
+右声道 PE7 同理（`AUANGCON8 |= BIT(10)`）。
+
+### 25.2 代码改动汇总
+
+| 文件 | 改动 |
+|---|---|
+| `app/projects/standard/app.cbp` | `<Add option="--wrap=auxadc_pcm_to_dac" />` |
+| `app/projects/standard/main.c` | 强制 `xcfg_cb.test_mode = TEST_AUX_ADC2DAC` |
+| `app/bsp_ext/bsp_adc_pcm_to_dac_ext.c` | 新增 `__wrap_auxadc_pcm_to_dac()` 实现 |
+| `app/bsp_ext/bsp_adc_aux_ext.c` | `channel` 改 PE6/PE7 + 放开 PE6/PE7 if 分支 |
+| `app/bsp_ext/bsp_dac_ext.c` | `dac_obuf_init()` 末尾加 `AUBUFCON &= ~BIT(0)` 退出 reset |
+
+### 25.3 实测日志（PC7）
+
+```text
+xcfg_cb.test_mode[1] = TEST_AUX_ADC2DAC
+auxadc_param_init
+auxadc_digital_init
+auxadc_cb.channel  = 0x33               ← 关键! PE6/PE7 配通
+dual,dmabuf = 0x13C0C, dmasize = 256
+auxadc_digital_init ok
+auxadc_analog_init
+auxadc_analog_init ok
+Test End
+DAC FIFOCNT=574, AUBUFSIZE=575, DVOL=0x7FFF, AVOL=0x2, PHASECOM=0x0, DACDIGCON0=0x205
+fa 03 d2 03 5f 04 35 04 ab 04 82 04 e2 04 b5 04    ← ADC 采到真实信号
+00 05 d1 04 01 05 d9 04 e9 04 be 04 b9 04 8b 04
+71 04 48 04 11 04 e8 03 9e 03 7c 03 17 03 fc 02
+... (周期性变化, 表明采到 AUX 模拟输入)
+```
+
+### 25.4 关键观察
+
+| 字段 | PC6 (A1) | **PC7 (A2)** | 含义 |
+|---|---|---|---|
+| `auxadc_cb.channel` | (无) | **0x33** | PE6/PE7 配通 ✓ |
+| `DACDIGCON0` 稳态 | 0x219 (SPR=6, 16kHz) | **0x205** (SPR=1, 44.1kHz) | DAC 直通，不走内部 SRC |
+| `DAC FIFOCNT` | 571~573 | **574/575**（接近满）| ADC ISR 推入 ≈ DAC 消费 |
+| ADC 数据 | (无) | **0x0000 ~ 0xFFFF 周期性变化** | AUX 采到真实信号 |
+| 声音 | 正弦波 | AUX 输入声音（有噪声）| 链路打通 ✓ |
+
+### 25.5 验收结论
+
+✅ **核心目标达成**：
+- AUX 输入信号能进 ADC；
+- ADC DMA 256 sample 半中断 + 全中断能跑；
+- 数据能搬到 DAC FIFO；
+- DAC 能输出声音（虽然有噪声）；
+- 串口 `channel = 0x33` 确认 PE6/PE7 配通。
+
+⚠️ **需要优化**（后续步骤）：
+- **噪声问题**：耳机能听到 AUX 输入的声音但有较大噪声；示波器波形不稳；
+- **FIFO 接近满**：DAC FIFOCNT=574/575，ADC ISR 推入速度可能略大于 DAC 消费速度；
+- **模拟增益可能过大**：当前 `gain = (15 << 6) | 30`（接近满量程），易削顶失真。
+
+### 25.6 下一步：A2 噪声优化
+
+接下来要做：
+
+1. **降低 AUX 模拟增益**（从 15 降到 5~10）；
+2. **降低 SDADC 数字增益**（从 30 降到 10~20）；
+3. **降低 avol**（从 50 调到 30 左右），减小 DAC 输出幅度；
+4. **ISR 中关闭 print_r**，减少对实时性的影响；
+5. 重新 Build + 烧录 + 验证噪声改善。
+
+### 25.7 任务 B 预告
+
+A2 主链路打通后，可以转去做任务 B（SDDAC 独立驱动），为 A2 噪声优化和后续 A3/A4 提供更多调试工具。
+
+---

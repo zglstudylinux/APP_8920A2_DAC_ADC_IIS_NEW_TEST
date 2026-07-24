@@ -37,6 +37,7 @@
 		<Linker>
 			<Add option="-T$(TARGET_OBJECT_DIR)ram.o" />
 			<Add option="--gc-sections" />
+			<Add option="--wrap=auxadc_pcm_to_dac" />
 			<Add option="-Map=Output\bin\map.txt" />
 			<Add library="libplatform" />
 			<Add library="libbtstack" />
@@ -49,6 +50,9 @@
 			<Add after="Output\bin\postbuild.bat $(PROJECT_NAME)" />
 		</ExtraCommands>
 		<Unit filename="../../bsp_ext/bsp_adc_aux_ext.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../bsp_ext/bsp_adc_pcm_to_dac_ext.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../bsp_ext/bsp_adc_aux_ext.h" />

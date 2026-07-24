@@ -1,12 +1,12 @@
-#include "include.h"
+﻿#include "include.h"
 #include "bsp_dac_ext.h"
-#define SDADC_DMA_SIZE           256         //DMASIZE = 最大样点数
+#define SDADC_DMA_SIZE           256         //DMASIZE = 鏈€澶ф牱鐐规暟
 bool test_aux_adc2dac_1s_print_en(void);
 void auxadc_pcm_to_dac(u8 flag, u8 *adc_buf, u16 adc_samples);
 typedef struct {
     u16 channel;
     u16 sample_rate;
-    u16 gain;        //低5bit为sdadc digital gain, 其它bit为模拟gain控制
+    u16 gain;        //浣?bit涓簊dadc digital gain, 鍏跺畠bit涓烘ā鎷焔ain鎺у埗
     u16 samples;
     u8 *buf;
 } auxadc_cb_t;
@@ -30,10 +30,10 @@ void auxadc_isr(void)
     //printf(str_adcisr,SDADCDMAFLAG&0x0F);
     if (SDADCDMAFLAG & BIT(1)) {                    //LDma Half Done
         SDADCDMACLR = BIT(1);
-        auxadc_pcm_to_dac(1,auxadc_cb.buf, auxadc_cb.samples);   //该函数在库中,移植时需要在外面重新写一个来实现
+        auxadc_pcm_to_dac(1,auxadc_cb.buf, auxadc_cb.samples);   //璇ュ嚱鏁板湪搴撲腑,绉绘鏃堕渶瑕佸湪澶栭潰閲嶆柊鍐欎竴涓潵瀹炵幇
     } else if (SDADCDMAFLAG & BIT(0)) {             //LDma Done
         SDADCDMACLR = BIT(0);
-        auxadc_pcm_to_dac(0,auxadc_cb.buf, auxadc_cb.samples);   //该函数在库中,移植时需要在外面重新写一个来实现
+        auxadc_pcm_to_dac(0,auxadc_cb.buf, auxadc_cb.samples);   //璇ュ嚱鏁板湪搴撲腑,绉绘鏃堕渶瑕佸湪澶栭潰閲嶆柊鍐欎竴涓潵瀹炵幇
     }
 
 //    if (SDADCDMAFLAG & BIT(3)) {                    //RDma Half Done
@@ -43,11 +43,11 @@ void auxadc_isr(void)
 //    }
 
     static u32 ticks = 0;
-    if (tick_check_expire(ticks,1000)) {  //1S打印一次数据
+    if (tick_check_expire(ticks,1000)) {  //1S鎵撳嵃涓€娆℃暟鎹?
         ticks = tick_get();
         if (test_aux_adc2dac_1s_print_en()) {
             print_dac_info();
-            print_r(auxadc_cb.buf,256);  //查看ADC buf中的数据,可以播放正弦波,把该数据转成bin或pcm文件,拖入audacity软中查看是否是正弦波
+            print_r(auxadc_cb.buf,256);  //鏌ョ湅ADC buf涓殑鏁版嵁,鍙互鎾斁姝ｅ鸡娉?鎶婅鏁版嵁杞垚bin鎴杙cm鏂囦欢,鎷栧叆audacity杞腑鏌ョ湅鏄惁鏄寮︽尝
         }
     }
 }
@@ -76,12 +76,12 @@ void auxadc_spr_set(u16 spr)
     }
     index = auxadc_spr_index_tbl[spr];
     if (ch & 0x40) {
-        //左声道SDADC Channel sample rate配置
+        //宸﹀０閬揝DADC Channel sample rate閰嶇疆
         SDADCDIGCON &= ~(0x0f << 3);
         SDADCDIGCON |= (index << 3);
     }
     if (ch & 0x80) {
-        //右声道SDADC Channel sample rate配置
+        //鍙冲０閬揝DADC Channel sample rate閰嶇疆
         SDADCDIGCON &= ~(0x0f << 11);
         SDADCDIGCON |= (index << 11);
     }
@@ -109,14 +109,18 @@ void auxadc_set_digital_gain(u16 gain)
 u32 buf_auxadc[512];
 
 AT(.text.sdadc)
-void auxadc_param_init(void)  //参数初始化
+void auxadc_param_init(void)  //鍙傛暟鍒濆鍖?
 {
     printf("%s\n",__func__);
     memset(&auxadc_cb, 0, sizeof(auxadc_cb));
-    auxadc_cb.buf = (u8 *)&buf_auxadc[0];      //复用DAC扩展BUF 512bytes
-    auxadc_cb.channel = CH_AUXL_PA6 | CH_AUXR_PA7;
+    auxadc_cb.buf = (u8 *)&buf_auxadc[0];      //澶嶇敤DAC鎵╁睍BUF 512bytes
+    //A2 浠诲姟: 鏍规嵁 8920A2 寮曡剼瀹氫箟鍥? AUX 杈撳叆瀹為檯鏄?
+    //   PE6 -> AUXL2 (ADC8) -> 宸﹀０閬?
+    //   PE7 -> AUXR2 (ADC9) -> 鍙冲０閬?
+    //娉ㄦ剰: 鍘熶唬鐮侀粯璁ょ殑 PA6/PA7 瀹為檯涓婁笉鏄?AUX 杈撳叆
+    auxadc_cb.channel = CH_AUXL_PE6 | CH_AUXR_PE7;  // 0x03 | 0x30 = 0x33
     auxadc_cb.sample_rate = SPR_44100;
-    auxadc_cb.samples = 256;    //256个样点
+    auxadc_cb.samples = 256;    //256涓牱鐐?
     auxadc_cb.gain = (15 << 6) | (30);   // ((u16)ANL_GAIN(0~23) << 6) | DIG_GAIN(0~31);
     auxadc_irq_init();
 }
@@ -132,7 +136,7 @@ int auxadc_digital_init(void)
     //p_ch = &auxadc_cb.left;
     printf("auxadc_cb.channel  = 0x%X\n",auxadc_cb.channel);
     if ((auxadc_cb.channel  & CHANNEL_L) && (auxadc_cb.channel  & CHANNEL_R)) {
-        //双声道Stereo
+        //鍙屽０閬揝tereo
         printf("dual,dmabuf = 0x%X, dmasize = %d\n",auxadc_cb.buf, auxadc_cb.samples);
         SDADCLDMAADDR = DMA_ADR(auxadc_cb.buf);      //Left  Channel DMA begin Address
         SDADCLDMASIZE = auxadc_cb.samples - 1;               //Left  Channel DMA Samples Number : DMASize +1 (half word)
@@ -142,7 +146,7 @@ int auxadc_digital_init(void)
         SDADCDIGCON  |= 0x0404;                         //left & right channel Digital Gain enable
         auxadc_set_digital_gain((u8)(auxadc_cb.gain & 0x3f) | 0xc0);  //setting sdadc left & right digital gain
     } else if (auxadc_cb.channel  & CHANNEL_L){
-        //左声道
+        //宸﹀０閬?
         SDADCLDMAADDR = DMA_ADR(auxadc_cb.buf);          //Left  Channel DMA begin Address
         SDADCLDMASIZE = auxadc_cb.samples - 1;                   //Left  Channel DMA Samples Number : DMASize +1 (half word)
         SDADCDMACON  &= ~0x31;
@@ -152,7 +156,7 @@ int auxadc_digital_init(void)
         SDADCDIGCON  |= 0x04;                           //Left channel Digital Gain enable
         auxadc_set_digital_gain((u8)(auxadc_cb.gain & 0x3f) | 0x40);  //setting sdadc left digital gain
     } else if (auxadc_cb.channel  & CHANNEL_R) {
-        //右声道
+        //鍙冲０閬?
         //p_ch = &auxadc_cb.right;
         SDADCRDMAADDR = DMA_ADR(auxadc_cb.buf + SDADC_DMA_SIZE * 2); //Right Channel DMA begin Address
         SDADCRDMASIZE = auxadc_cb.samples - 1;               //Right Channel DMA Samples Number : DMASize +1 (half word)
@@ -176,35 +180,43 @@ void aux_analog_channel_select_ext(u8 channel)
 
     if (left) {
         if (left == CH_AUXL_PA6) {
-            AUANGCON7 |= BIT(8);                    //AUX left channel input source 0
+            AUANGCON7 |= BIT(8);                    //AUX left channel input source 0 (PA6)
         }
-//        else if (left == CH_AUXL_PB1) {
-//            AUANGCON7 |= BIT(9);                    //AUX left channel input source 1
-//        } else if (left == CH_AUXL_PE6) {
-//            AUANGCON7 |= BIT(10);                   //AUX left channel input source 2
-//        } else if (left == CH_AUXL_PF4) {
-//            AUANGCON7 |= BIT(11);                   //AUX left channel input source 3
-//        } else if (left == CH_AUXL_VCMBUF) {
-//            AUANGCON7 |= BIT(19);                   //Enable bit for 'VCMBUF_VOUTLN' PAD being an input of AUX left channel
-//        } else if (left == CH_AUXL_VOUTRP) {
-//            AUANGCON7 |= BIT(15);                    //Enable bit for 'VOUTR_P' PAD being an input source of AUX left channel
-//        }
+        else if (left == CH_AUXL_PB1) {
+            AUANGCON7 |= BIT(9);                    //AUX left channel input source 1 (PB1)
+        }
+        else if (left == CH_AUXL_PE6) {
+            AUANGCON7 |= BIT(10);                   //AUX left channel input source 2 (PE6/AUXL2)
+        }
+        else if (left == CH_AUXL_PF4) {
+            AUANGCON7 |= BIT(11);                   //AUX left channel input source 3 (PF4)
+        }
+        else if (left == CH_AUXL_VCMBUF) {
+            AUANGCON7 |= BIT(19);                   //Enable bit for 'VCMBUF_VOUTLN' PAD being an input of AUX left channel
+        }
+        else if (left == CH_AUXL_VOUTRP) {
+            AUANGCON7 |= BIT(15);                    //Enable bit for 'VOUTR_P' PAD being an input source of AUX left channel
+        }
     }
     if (right) {
         if (right == CH_AUXR_PA7) {
             AUANGCON8 |= BIT(8);                   //AUX right channel input source 0
         }
-//        else if (right == CH_AUXR_PB2) {
-//            AUANGCON8 |= BIT(9);                   //AUX right channel input source 1
-//        } else if (right == CH_AUXR_PE7) {
-//            AUANGCON8 |= BIT(10);                   //AUX right channel input source 2
-//        } else if (right == CH_AUXR_PF5) {
-//            AUANGCON8 |= BIT(11);                   //AUX right channel input source 3
-//        } else if (right == CH_AUXR_VCMBUF) {
-//            AUANGCON8 |= BIT(19);                   //Enable bit for 'VCMBUF_VOUTLN' PAD being an input of AUX right channel
-//        } else if (right == CH_AUXR_VOUTRN) {
-//            AUANGCON8 |= BIT(15);                   //Enable bit for 'VOUTR_P' PAD being an input source of AUX left channel
-//        }
+        else if (right == CH_AUXR_PB2) {
+            AUANGCON8 |= BIT(9);                   //AUX right channel input source 1 (PB2)
+        }
+        else if (right == CH_AUXR_PE7) {
+            AUANGCON8 |= BIT(10);                  //AUX right channel input source 2 (PE7/AUXR2)
+        }
+        else if (right == CH_AUXR_PF5) {
+            AUANGCON8 |= BIT(11);                   //AUX left channel input source 3 (PF5)
+        }
+        else if (right == CH_AUXR_VCMBUF) {
+            AUANGCON8 |= BIT(19);                   //Enable bit for 'VCMBUF_VOUTLN' PAD being an input of AUX right channel
+        }
+        else if (right == CH_AUXR_VOUTRN) {
+            AUANGCON8 |= BIT(15);                   //Enable bit for 'VOUTR_P' PAD being an input source of AUX right channel
+        }
     }
 }
 
@@ -270,7 +282,7 @@ void auxadc_analog_aux_start(u8 channel, u8 gain)
     }
 }
 
-///初始化SDADC对应channel的模拟、数字配置
+///鍒濆鍖朣DADC瀵瑰簲channel鐨勬ā鎷熴€佹暟瀛楅厤缃?
 AT(.text.sdadc)
 int auxadc_analog_init(void)
 {
@@ -310,14 +322,14 @@ int auxadc_analog_init(void)
 
 void test_aux_adc2dac(void)
 {
-    dac_spr_set(SPR_44100);  //DAC采样率 8~48K可选
-    dac_set_dvol(DIG_N0DB);  //设置数字音量,最大0DB
+    dac_spr_set(SPR_44100);  //DAC閲囨牱鐜?8~48K鍙€?
+    dac_set_dvol(DIG_N0DB);  //璁剧疆鏁板瓧闊抽噺,鏈€澶?DB
     dac_set_avol(50);
 
-    auxadc_param_init();    //采样率,增益，ADCBUF,中断等参数设置
-    auxadc_digital_init();  //ADC 数字部份配置
-    auxadc_analog_init();   //ADC 模拟/通道等配置
-    //配置完成的,会在ADC中断中推DAC
+    auxadc_param_init();    //閲囨牱鐜?澧炵泭锛孉DCBUF,涓柇绛夊弬鏁拌缃?
+    auxadc_digital_init();  //ADC 鏁板瓧閮ㄤ唤閰嶇疆
+    auxadc_analog_init();   //ADC 妯℃嫙/閫氶亾绛夐厤缃?
+    //閰嶇疆瀹屾垚鐨?浼氬湪ADC涓柇涓帹DAC
 }
 
 
