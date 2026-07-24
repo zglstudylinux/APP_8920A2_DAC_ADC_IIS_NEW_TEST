@@ -115,10 +115,11 @@ void auxadc_param_init(void)  //鍙傛暟鍒濆鍖?
     memset(&auxadc_cb, 0, sizeof(auxadc_cb));
     auxadc_cb.buf = (u8 *)&buf_auxadc[0];      //澶嶇敤DAC鎵╁睍BUF 512bytes
     //A2 浠诲姟: 鏍规嵁 8920A2 寮曡剼瀹氫箟鍥? AUX 杈撳叆瀹為檯鏄?
-    //   PE6 -> AUXL2 (ADC8) -> 宸﹀０閬?
-    //   PE7 -> AUXR2 (ADC9) -> 鍙冲０閬?
+    //   PB1/WK2 -> AUXL1 (ADC3) -> 宸﹀０閬?
+    //   PB2/WK3 -> AUXR1 (ADC4) -> 鍙冲０閬?
     //娉ㄦ剰: 鍘熶唬鐮侀粯璁ょ殑 PA6/PA7 瀹為檯涓婁笉鏄?AUX 杈撳叆
-    auxadc_cb.channel = CH_AUXL_PE6 | CH_AUXR_PE7;  // 0x03 | 0x30 = 0x33
+    //A2-A: 2026-07-24 鐢?PE6/PE7 鏇存敼涓?PB1/PB2 (AUXL1/AUXR1)
+    auxadc_cb.channel = CH_AUXL_PB1 | CH_AUXR_PB2;  // 0x02 | 0x20 = 0x22 (AUXL1/PB1, AUXR1/PB2 = WK2/WK3)
     auxadc_cb.sample_rate = SPR_16000;  //A2 PC11: ADC 与 DAC 同步 16kHz, 不走 SRC;
     auxadc_cb.samples = 512;    //A2 PC12: 512个样点 (降低 ADC ISR 频率)
     auxadc_cb.gain = (8 << 6) | (15);    //A2 降噪: 模拟增益 8 (约 -3 dB), 数字增益 15 (约 -15 dB)
