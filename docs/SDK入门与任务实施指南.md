@@ -2008,3 +2008,48 @@ fa 03 d2 03 5f 04 35 04 ab 04 82 04 e2 04 b5 04    ← ADC 采到真实信号
 A2 主链路打通后，可以转去做任务 B（SDDAC 独立驱动），为 A2 噪声优化和后续 A3/A4 提供更多调试工具。
 
 ---
+
+## 26. 任务 A2 降噪调优记录（PC8 ~ PC12）
+
+> **目标**：在 PC7（有声音 + 大噪声 + 频率不稳）基础上，通过调优参数实现"1 kHz 稳定 + 噪声小 + 声音大"。
+
+### 26.1 调优时间线
+
+| PC | 改动 | 结果 |
+|---|---|---|
+| PC7 | channel=PE6/PE7 + AUBUFCON reset 修复 | 能听到 AUX 输入声音，但大噪声，频率不稳 |
+| PC8 | `auxadc_cb.gain=(8<<6)\|15` + `dac_set_avol(30)` + 关 ISR print | 噪声减少但声音变小，频率仍跳 |
+| PC9 | `dac_set_avol(40)`（调大补偿 PC8） | 仍有噪声 |
+| PC10 | `dac_spr_set(SPR_16000)` + `avol=50`（DAC 走 16kHz + 内部 SRC） | 频率 100~300 Hz 跳变，最不稳 |
+| PC11 | `auxadc_cb.sample_rate=SPR_16000`（ADC 与 DAC 同 16kHz） | 频率仍不稳，噪声大 |
+| **PC12** | `auxadc_cb.samples=512` + `dac_set_avol(53)` + ADC/DAC 同 16kHz | **1 kHz 稳定 + 噪声小 + 声音清晰** ✅ |
+
+### 26.2 PC12 最终配置
+
+| 参数 | 值 | 含义 |
+|---|---|---|
+| `auxadc_cb.channel` | `CH_AUXL_PE6 \| CH_AUXR_PE7` (0x33) | PE6/PE7 (AUXL2/AUXR2) |
+| `auxadc_cb.sample_rate` | `SPR_16000` | ADC 16 kHz，与 DAC 一致 |
+| `auxadc_cb.samples` | `512` | DMA 半中断 512 sample，触发频率 ~31 Hz |
+| `auxadc_cb.gain` | `(8<<6) \| 15` | 模拟增益 8 (-3 dB) + 数字增益 15 (-15 dB) |
+| `dac_spr_set()` | `SPR_16000` | DAC 16 kHz 直通（不走 SRC）|
+| `dac_set_dvol()` | `DIG_N0DB` | 数字音量最大 |
+| `dac_set_avol()` | `53` | 模拟音量 N_1DB (-1 dB)，接近上限 |
+| `DACDIGCON0` | `0x219` | 16 kHz 编码，SRC 关闭 |
+| ISR print | on | 保留每 1 s 打印 DAC FIFOCNT |
+
+### 26.3 关键经验
+
+1. **FIFO 持续 575 是死锁信号**：FIFO 满了又没人消费 → ISR 不断 break → 数据被丢弃 → 频率跳变。修复：让 ADC 与 DAC 同速率（PC11），避免 SRC 延迟。
+
+2. **SRC 模块引入延迟**：PC10 用 DAC 走 16 kHz + ADC 走 44.1 kHz 让 SRC 转换，**反而引发频率不稳**（100~300 Hz 跳变）。**直接同步最稳**。
+
+3. **samples=512 降低 ISR 频率**：原本 samples=256 时 ADC ISR 每 ~5.8 ms 触发一次（172 Hz），FIFO 频繁被填满；改为 512 后 ISR 每 ~32 ms 触发（31 Hz），FIFO 有更多时间被 DAC 消费。
+
+4. **增益分两段配置**：`auxadc_cb.gain = (anl_gain<<6) | dig_gain`，模拟增益（0~23）和数字增益（0~31）独立控制。
+
+5. **avol=53（N_1DB）接近上限**：再高（54=N_0DB、55=P_1DB）就开始削顶失真。
+
+6. **DACDIGCON0=0x219** 是 16 kHz 编码成功的标志（PC1/PC2/PC6/PC12 都是这个值）。
+
+---

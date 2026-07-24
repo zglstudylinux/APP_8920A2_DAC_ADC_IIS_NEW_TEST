@@ -43,7 +43,7 @@ void auxadc_isr(void)
 //    }
 
     static u32 ticks = 0;
-    if (tick_check_expire(ticks,1000)) {  //1S鎵撳嵃涓€娆℃暟鎹?
+    if (tick_check_expire(ticks,1000)) {  //A2 PC10: 重新启用 ISR 串口打印 (诊断)  //1S鎵撳嵃涓€娆℃暟鎹?
         ticks = tick_get();
         if (test_aux_adc2dac_1s_print_en()) {
             print_dac_info();
@@ -119,9 +119,9 @@ void auxadc_param_init(void)  //鍙傛暟鍒濆鍖?
     //   PE7 -> AUXR2 (ADC9) -> 鍙冲０閬?
     //娉ㄦ剰: 鍘熶唬鐮侀粯璁ょ殑 PA6/PA7 瀹為檯涓婁笉鏄?AUX 杈撳叆
     auxadc_cb.channel = CH_AUXL_PE6 | CH_AUXR_PE7;  // 0x03 | 0x30 = 0x33
-    auxadc_cb.sample_rate = SPR_44100;
-    auxadc_cb.samples = 256;    //256涓牱鐐?
-    auxadc_cb.gain = (15 << 6) | (30);   // ((u16)ANL_GAIN(0~23) << 6) | DIG_GAIN(0~31);
+    auxadc_cb.sample_rate = SPR_16000;  //A2 PC11: ADC 与 DAC 同步 16kHz, 不走 SRC;
+    auxadc_cb.samples = 512;    //A2 PC12: 512个样点 (降低 ADC ISR 频率)
+    auxadc_cb.gain = (8 << 6) | (15);    //A2 降噪: 模拟增益 8 (约 -3 dB), 数字增益 15 (约 -15 dB)
     auxadc_irq_init();
 }
 
@@ -322,9 +322,9 @@ int auxadc_analog_init(void)
 
 void test_aux_adc2dac(void)
 {
-    dac_spr_set(SPR_44100);  //DAC閲囨牱鐜?8~48K鍙€?
+    dac_spr_set(SPR_16000);  //A2 PC11: DAC 16kHz + internal SRC閲囨牱鐜?8~48K鍙€?
     dac_set_dvol(DIG_N0DB);  //璁剧疆鏁板瓧闊抽噺,鏈€澶?DB
-    dac_set_avol(50);
+    dac_set_avol(53);        //A2 PC12: avol=53 (N_1DB ~ -1 dB) 接近上限: avol=50 (N_4DB ~ -4 dB) 接近上限, 声音大
 
     auxadc_param_init();    //閲囨牱鐜?澧炵泭锛孉DCBUF,涓柇绛夊弬鏁拌缃?
     auxadc_digital_init();  //ADC 鏁板瓧閮ㄤ唤閰嶇疆

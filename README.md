@@ -49,7 +49,7 @@ APP_8920A2_DAC_ADC_IIS_NEW_TEST
 | 任务 A1 第 1b 步：调大模拟音量（avol 25 → 50）| ✅ | [A1 步骤 1b 验证记录](docs/SDK入门与任务实施指南.md#23-任务-a1-第-1b-步验证调大模拟音量pc3) |
 | 任务 A1 第 2 步：32 点/500 Hz 正弦表 | ✅ | [A1 步骤 2 验证记录](docs/SDK入门与任务实施指南.md#24-任务-a1-第-2-步验证500-hz-正弦表pc4) |
 | 任务 A1 第 3 步：16 点/1 kHz + 8 点/2 kHz 正弦表 | ⏳ | 待完成 |
-| 任务 A2：AUX ADC → DAC（重写 `auxadc_pcm_to_dac`） | ✅（有噪声待优化）| [A2 验证记录](docs/SDK入门与任务实施指南.md#25-任务-a2-验证aux-adc--dacpc7) |
+| 任务 A2：AUX ADC → DAC（重写 `auxadc_pcm_to_dac`） | ✅ | [A2 验证记录](docs/SDK入门与任务实施指南.md#25-任务-a2-验证aux-adc--dacpc7) + [降噪调优教学](docs/A2任务降噪调优教学.md) |
 | 任务 A3：IIS Master SRCTX（重写 `iis_master_srctx_init`） | ⏳ | 待完成 |
 | 任务 A4：IIS Slave RAMRX → DAC（重写 `iis_slave_ram_rx_2_dac`） | ⏳ | 待完成 |
 | 任务 B：SDDAC 实战 | ⏳ | 待完成 |
