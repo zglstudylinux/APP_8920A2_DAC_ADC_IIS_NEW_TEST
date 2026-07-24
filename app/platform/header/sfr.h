@@ -86,6 +86,19 @@
 #define DACDIGCON0      SFR_RW (SFR1_BASE + 0x10*4)
 #define DACVOLCON       SFR_RW (SFR1_BASE + 0x11*4)
 #define CLKCON4         SFR_RW (SFR1_BASE + 0x1e*4)
+
+//------------------------- IIS Group1 (A3: 验证中) -----------------------------------//
+//   !! 以下地址是 EDUCATED GUESSES, 需用 riscv32-elf-objdump 反汇编 libdrivers.a !!!
+//   530X 文档里 IIS 紧邻 DAC 寄存器; 8920A2 推测在 SFR1_BASE +0x20..+0x26 区间
+//   如果逻辑分析仪上看不到 BCLK, 用 objdump 找真实地址并更新这里
+#define IISCON0         SFR_RW (SFR1_BASE + 0x20*4)   //bit0=EN, bit1=slave, bit2=32bit, bit3=normal, bit10=dma_dly, bit16=tx_pend, bit17=rx_pend
+#define IISBAUD         SFR_RW (SFR1_BASE + 0x21*4)   //[6:0]=mclk_div, [11:7]=bclk_div
+#define IISDMACNT       SFR_RW (SFR1_BASE + 0x22*4)   //samples count
+#define IISDMAOADR0     SFR_RW (SFR1_BASE + 0x23*4)   //TX dma addr 0
+#define IISDMAOADR1     SFR_RW (SFR1_BASE + 0x24*4)   //TX dma addr 1
+#define IISDMAIADR0     SFR_RW (SFR1_BASE + 0x25*4)   //RX dma addr 0
+#define IISDMAIADR1     SFR_RW (SFR1_BASE + 0x26*4)   //RX dma addr 1
+
 #define USBCON0         SFR_RW (SFR3_BASE + 0x00*4)
 #define USBCON1         SFR_RW (SFR3_BASE + 0x01*4)
 #define USBCON2         SFR_RW (SFR3_BASE + 0x02*4)
