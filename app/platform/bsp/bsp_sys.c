@@ -185,13 +185,51 @@ unsigned char sine_16k_500hz[128] = {
         0xA3, 0xD2, 0xA3, 0xD2, 0x5C, 0xDC, 0x5C, 0xDC, 0x73, 0xE7, 0x73, 0xE7, 0x7C, 0xF3, 0x7C, 0xF3,
 };
 
+//A1 第 3 步：16 kHz 采样率 + 16 点/周期 = 1000 Hz 正弦表
+unsigned char sine_16k_1khz[64] = {
+        0x00, 0x00, 0x00, 0x00, 0x8D, 0x18, 0x8D, 0x18,
+        0x5D, 0x2D, 0x5D, 0x2D, 0x45, 0x3B, 0x45, 0x3B,
+        0x27, 0x40, 0x27, 0x40, 0x45, 0x3B, 0x45, 0x3B,
+        0x5D, 0x2D, 0x5D, 0x2D, 0x8D, 0x18, 0x8D, 0x18,
+        0x00, 0x00, 0x00, 0x00, 0x73, 0xE7, 0x73, 0xE7,
+        0xA3, 0xD2, 0xA3, 0xD2, 0xBB, 0xC4, 0xBB, 0xC4,
+        0xD9, 0xBF, 0xD9, 0xBF, 0xBB, 0xC4, 0xBB, 0xC4,
+        0xA3, 0xD2, 0xA3, 0xD2, 0x73, 0xE7, 0x73, 0xE7,
+};
+
+//A1 第 3 步：16 kHz 采样率 + 8 点/周期 = 2000 Hz 正弦表
+unsigned char sine_16k_2khz[32] = {
+        0x00, 0x00, 0x00, 0x00, 0x5D, 0x2D, 0x5D, 0x2D,
+        0x27, 0x40, 0x27, 0x40, 0x5D, 0x2D, 0x5D, 0x2D,
+        0x00, 0x00, 0x00, 0x00, 0xA3, 0xD2, 0xA3, 0xD2,
+        0xD9, 0xBF, 0xD9, 0xBF, 0xA3, 0xD2, 0xA3, 0xD2,
+};
+
+//A1 第 3 步：编译时切换频率 (0=500Hz, 1=1kHz, 2=2kHz)
+#ifndef A1_CUR_FREQ
+#define A1_CUR_FREQ    0
+#endif
+
+#if (A1_CUR_FREQ == 0)
+#define A1_SINE_TABLE      sine_16k_500hz
+#define A1_SINE_TABLE_SIZE sizeof(sine_16k_500hz)
+#elif (A1_CUR_FREQ == 1)
+#define A1_SINE_TABLE      sine_16k_1khz
+#define A1_SINE_TABLE_SIZE sizeof(sine_16k_1khz)
+#elif (A1_CUR_FREQ == 2)
+#define A1_SINE_TABLE      sine_16k_2khz
+#define A1_SINE_TABLE_SIZE sizeof(sine_16k_2khz)
+#else
+#error "A1_CUR_FREQ must be 0 (500Hz), 1 (1kHz), or 2 (2kHz)"
+#endif
+
 void test_pcm2dac(void)
 {
     WDT_DIS();
-    dac_spr_set(SPR_16000);  //DAC采样率 16K (A1 第 1 步保留)
+    dac_spr_set(SPR_16000);  //DAC采样率 16K
     dac_set_dvol(DIG_N0DB);  //设置数字音量,最大0DB
-    dac_set_avol(50);        //设置模拟音量,0~59. (A1-PC3 保留: -5 dB)
-    u32 *pcm_buf = (u32*)sine_16k_500hz;  //A1 第 2 步: 32点/周期 = 500 Hz
+    dac_set_avol(50);        //设置模拟音量,0~59. (avol=50 -> N_4DB = -4 dB)
+    u32 *pcm_buf = (u32*)A1_SINE_TABLE;  //A1 第 3 步: 编译时切换频率
     u32 i = 0;
     while(1) {
         print_audio_sfr_info();
@@ -199,7 +237,7 @@ void test_pcm2dac(void)
             AUBUFDATA = pcm_buf[i];     //通过AUBUFDATA向DACBUF写数据,DACBUF内部大约有2K的缓存
             pcm_cnt++;
             i++;
-            if (i >= sizeof(sine_16k_500hz)/4) {
+            if (i >= A1_SINE_TABLE_SIZE/4) {
                 i = 0;
             }
         }
