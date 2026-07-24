@@ -122,7 +122,7 @@ void auxadc_param_init(void)  //鍙傛暟鍒濆鍖?
     auxadc_cb.channel = CH_AUXL_PB1 | CH_AUXR_PB2;  // 0x02 | 0x20 = 0x22 (AUXL1/PB1, AUXR1/PB2 = WK2/WK3)
     auxadc_cb.sample_rate = SPR_16000;  //A2 PC11: ADC 与 DAC 同步 16kHz, 不走 SRC;
     auxadc_cb.samples = 512;    //A2 PC12: 512个样点 (降低 ADC ISR 频率)
-    auxadc_cb.gain = (8 << 6) | (15);    //A2 降噪: 模拟增益 8 (约 -3 dB), 数字增益 15 (约 -15 dB)
+    auxadc_cb.gain = (8 << 6) | (20);    //A2 降噪: 模拟增益 8 (约 -3 dB), 数字增益 20 (约 +1.9 dB) — 2026-07-24 上调音量 (15 -> 20)
     auxadc_irq_init();
 }
 
@@ -325,7 +325,7 @@ void test_aux_adc2dac(void)
 {
     dac_spr_set(SPR_16000);  //A2 PC11: DAC 16kHz + internal SRC閲囨牱鐜?8~48K鍙€?
     dac_set_dvol(DIG_N0DB);  //璁剧疆鏁板瓧闊抽噺,鏈€澶?DB
-    dac_set_avol(53);        //A2 PC12: avol=53 (N_1DB ~ -1 dB) 接近上限: avol=50 (N_4DB ~ -4 dB) 接近上限, 声音大
+    dac_set_avol(57);        //A2 PC12: avol=53 (N_1DB ~ -1 dB) — 2026-07-24 上调音量到 57 (P_3DB = +3 dB, 共 +4 dB 提升)
 
     auxadc_param_init();    //閲囨牱鐜?澧炵泭锛孉DCBUF,涓柇绛夊弬鏁拌缃?
     auxadc_digital_init();  //ADC 鏁板瓧閮ㄤ唤閰嶇疆
